@@ -1,0 +1,200 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PropFirmPhase {
+  EVAL_1
+  EVAL_2
+  FUNDED
+  BREACHED
+  ARCHIVED
+}
+
+enum InstrumentType {
+  STOCK
+  FUTURES
+  FX
+  CRYPTO
+  OPTION
+}
+
+enum TradeSide {
+  LONG
+  SHORT
+}
+
+enum TradeStatus {
+  OPEN
+  CLOSED
+}
+
+enum TradeSource {
+  MANUAL
+  CSV
+  LLM
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  PAYOUT
+  FEE
+  SUBSCRIPTION
+  RESET
+  OTHER
+}
+
+enum LlmImportStatus {
+  DRAFT
+  CONFIRMED
+  DISCARDED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  accounts     PropFirmAccount[]
+  trades       Trade[]
+  transactions AccountTransaction[]
+  journal      JournalEntry[]
+  playbooks    Playbook[]
+  csvPresets   CsvImportPreset[]
+  llmSessions  LlmImportSession[]
+}
+
+model PropFirmAccount {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  firm            String?
+  accountNumber   String?
+  phase           PropFirmPhase  @default(EVAL_1)
+  startingBalance Decimal        @db.Decimal(18, 6)
+  currentBalance  Decimal        @db.Decimal(18, 6)
+  profitTarget    Decimal?       @db.Decimal(18, 6)
+  maxDailyLoss    Decimal?       @db.Decimal(18, 6)
+  maxTotalLoss    Decimal?       @db.Decimal(18, 6)
+  payoutSplit     Decimal?       @db.Decimal(5, 4)
+  currency        String         @default("USD")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  archivedAt      DateTime?
+
+  trades       Trade[]
+  transactions AccountTransaction[]
+
+  @@index([userId])
+}
+
+model Trade {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId      String
+  account        PropFirmAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  symbol         String
+  instrumentType InstrumentType   @default(FUTURES)
+  side           TradeSide
+  quantity       Decimal          @db.Decimal(18, 6)
+  entryPrice     Decimal          @db.Decimal(18, 6)
+  exitPrice      Decimal?         @db.Decimal(18, 6)
+  entryAt        DateTime
+  exitAt         DateTime?
+  fees           Decimal          @default(0) @db.Decimal(18, 6)
+  grossPnl       Decimal?         @db.Decimal(18, 6)
+  netPnl         Decimal?         @db.Decimal(18, 6)
+  rMultiple      Decimal?         @db.Decimal(10, 4)
+  stopLoss       Decimal?         @db.Decimal(18, 6)
+  takeProfit     Decimal?         @db.Decimal(18, 6)
+  status         TradeStatus      @default(OPEN)
+  tags           String[]         @default([])
+  notes          String?
+  source         TradeSource      @default(MANUAL)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([userId, entryAt])
+  @@index([accountId, entryAt])
+}
+
+model AccountTransaction {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId   String
+  account     PropFirmAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  type        TransactionType
+  amount      Decimal          @db.Decimal(18, 6)
+  occurredAt  DateTime
+  memo        String?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, occurredAt])
+  @@index([accountId, occurredAt])
+}
+
+model Playbook {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  rulesJson   Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model JournalEntry {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date         DateTime @db.Date
+  title        String
+  bodyMarkdown String
+  mood         String?
+  tagsJson     Json     @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId, date])
+}
+
+model CsvImportPreset {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  delimiter   String   @default(",")
+  dateFormat  String   @default("yyyy-MM-dd HH:mm:ss")
+  mappingJson Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model LlmImportSession {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rawInput   String
+  parsedJson Json
+  status     LlmImportStatus  @default(DRAFT)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([userId, createdAt])
+}
