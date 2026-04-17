@@ -55,13 +55,19 @@ enum LlmImportStatus {
   DISCARDED
 }
 
+enum LlmProvider {
+  ANTHROPIC
+  GOOGLE
+}
+
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                 String       @id @default(cuid())
+  email              String       @unique
+  passwordHash       String
+  name               String?
+  activeLlmProvider  LlmProvider?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   accounts     PropFirmAccount[]
   trades       Trade[]
@@ -70,6 +76,22 @@ model User {
   playbooks    Playbook[]
   csvPresets   CsvImportPreset[]
   llmSessions  LlmImportSession[]
+  llmApiKeys   LlmApiKey[]
+}
+
+model LlmApiKey {
+  id         String      @id @default(cuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   LlmProvider
+  ciphertext String
+  iv         String
+  authTag    String
+  lastFour   String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@unique([userId, provider])
 }
 
 model PropFirmAccount {

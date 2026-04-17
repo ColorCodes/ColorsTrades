@@ -21,8 +21,8 @@ export default function ImportHome() {
         </Link>
         <Link href="/import/chat">
           <Card className="h-full hover:bg-accent transition-colors">
-            <CardHeader><MessageSquare className="size-5 text-primary" /><CardTitle>AI chat</CardTitle><CardDescription>Paste trades, Claude parses them</CardDescription></CardHeader>
-            <CardContent className="text-sm text-muted-foreground">Requires ANTHROPIC_API_KEY.</CardContent>
+            <CardHeader><MessageSquare className="size-5 text-primary" /><CardTitle>AI chat</CardTitle><CardDescription>Paste trades, Claude or Gemini parses them</CardDescription></CardHeader>
+            <CardContent className="text-sm text-muted-foreground">Configure a provider in Settings.</CardContent>
           </Card>
         </Link>
       </div>
