@@ -35,6 +35,8 @@
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-toast": "^1.2.4",
+    "@simplewebauthn/browser": "^9.0.1",
+    "@simplewebauthn/server": "^9.0.3",
     "@tanstack/react-table": "^8.21.2",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",

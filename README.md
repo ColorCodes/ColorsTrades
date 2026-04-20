@@ -11,7 +11,7 @@ Self-hosted trading journal for prop-firm traders. Tracks funded-account balance
 - Notebook with markdown entries
 - Reports by symbol / tag / day-of-week / hour
 - Equity curve, calendar heatmap, per-symbol breakdown
-- Single-user self-hosted (email + password)
+- Single-user self-hosted with **passkey sign-in** (WebAuthn), password fallback, per-identifier rate limiting, and optional **mTLS at the reverse proxy**
 
 ## Quickstart
 
@@ -56,6 +56,59 @@ If your droplet ever gets flagged for abuse (outbound DDoS, crypto mining, port 
 ### Auth host trust
 
 See item 7 above.
+
+## Going live: Caddy, HTTPS, and optional mTLS
+
+The repo ships a production overlay at `docker-compose.prod.yml` that adds a Caddy reverse proxy (auto-TLS via Let's Encrypt) and hides the Next.js container from the host completely.
+
+```bash
+# 1. Point your domain's A record at the droplet IP.
+
+# 2. Copy and edit the Caddy config.
+cp deploy/Caddyfile.example deploy/Caddyfile
+# Edit deploy/Caddyfile: replace "your-domain.example" with your domain.
+
+# 3. Set NEXTAUTH_URL to your HTTPS URL.
+sed -i 's|^NEXTAUTH_URL=.*|NEXTAUTH_URL=https://your-domain.example|' .env
+
+# 4. Make sure only 22 + 80 + 443 are open on the firewall.
+ufw allow 80/tcp && ufw allow 443/tcp
+
+# 5. Start the stack with the prod overlay.
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+### Passkeys
+
+Once you log in the first time with `SEED_EMAIL` / `SEED_PASSWORD`, go to **Settings → Passkeys** and click **Enroll passkey** on every device you want to use. As soon as ≥1 passkey is enrolled, password sign-in is disabled for your account and the `/login` page favors the passkey button.
+
+Enroll at least one additional backup passkey (a second phone, or a hardware security key) so you're not locked out if you lose a device.
+
+### Rate limiting
+
+Failed sign-in attempts are tracked per email and per IP. After 5 failures for an email (or 20 from one IP) within 15 minutes, that identifier is locked out for the rest of the window. Every attempt is persisted in the `LoginAttempt` table for audit.
+
+### mTLS (optional, extra paranoid)
+
+With mTLS on, Caddy refuses the TLS handshake unless the client presents a certificate signed by your private CA. Anyone without your cert never reaches the login page at all. It's the strongest defense against brute-force and 0-days in the auth layer.
+
+```bash
+# On the droplet, generate a CA and one client cert:
+./deploy/mtls-setup.sh my-phone
+# Repeat for each device:
+./deploy/mtls-setup.sh my-laptop
+
+# Install each .p12 file on the matching device
+# (iOS Files → tap .p12 → enable full trust; macOS Keychain Access; etc.)
+
+# Enable mTLS in Caddy:
+#   1. Uncomment the tls { client_auth { ... } } block in deploy/Caddyfile
+#   2. Uncomment the client_ca.pem bind mount in docker-compose.prod.yml
+#   3. docker compose -f docker-compose.yml -f docker-compose.prod.yml restart caddy
+
+# Keep deploy/ca.key OFFLINE after you've issued all your client certs.
+# Losing it is fine (you can regenerate); leaking it lets an attacker issue new certs.
+```
 
 ### AI chat importer
 

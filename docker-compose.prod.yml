@@ -1,0 +1,35 @@
+# Production overlay — run with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Adds a Caddy reverse proxy (auto-TLS via Let's Encrypt) and hides the
+# Next.js service from the host completely. The `web` service is only
+# reachable through the internal docker network.
+
+services:
+  web:
+    # Override base compose — do NOT publish web to the host.
+    ports: !reset []
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      # Optional mTLS: uncomment after generating client_ca.pem (see README)
+      # - ./deploy/client_ca.pem:/etc/caddy/client_ca.pem:ro
+    environment:
+      ACME_AGREE: "true"
+
+volumes:
+  caddy_data:
+  caddy_config:

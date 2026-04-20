@@ -3,11 +3,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChangePasswordForm } from "./change-password-form";
 import { ThemeToggle } from "./theme-toggle";
 import { LlmProviderForm } from "./llm-provider-form";
+import { PasskeyManager } from "./passkeys";
 import { getLlmSettingsState } from "@/lib/llm-settings";
+import { prisma } from "@/lib/db";
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const llmState = await getLlmSettingsState(user.id);
+  const [llmState, passkeys] = await Promise.all([
+    getLlmSettingsState(user.id),
+    prisma.authenticator.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        nickname: true,
+        deviceType: true,
+        backedUp: true,
+        createdAt: true,
+        lastUsedAt: true,
+      },
+    }),
+  ]);
   const serverReady = !!process.env.ENCRYPTION_KEY;
 
   return (
@@ -19,7 +35,32 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Change password</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Passkeys</CardTitle>
+          <CardDescription>
+            Phishing-resistant sign-in with Touch ID, Windows Hello, or a security key. Enrolling any passkey disables password sign-in for your account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PasskeyManager
+            initial={passkeys.map((p) => ({
+              ...p,
+              createdAt: p.createdAt.toISOString(),
+              lastUsedAt: p.lastUsedAt?.toISOString() ?? null,
+            }))}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Change password</CardTitle>
+          {passkeys.length > 0 && (
+            <CardDescription>
+              Password sign-in is currently disabled because you have a passkey enrolled. You can still change it as a backup.
+            </CardDescription>
+          )}
+        </CardHeader>
         <CardContent><ChangePasswordForm /></CardContent>
       </Card>
 

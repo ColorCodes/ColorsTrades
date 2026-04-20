@@ -1,0 +1,8 @@
+Caddyfile
+ca.key
+*.srl
+*.key
+*.crt
+*.csr
+*.p12
+client_ca.pem

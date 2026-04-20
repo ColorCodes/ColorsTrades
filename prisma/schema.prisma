@@ -60,6 +60,11 @@ enum LlmProvider {
   GOOGLE
 }
 
+enum LoginMethod {
+  PASSWORD
+  PASSKEY
+}
+
 model User {
   id                 String       @id @default(cuid())
   email              String       @unique
@@ -69,14 +74,45 @@ model User {
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 
-  accounts     PropFirmAccount[]
-  trades       Trade[]
-  transactions AccountTransaction[]
-  journal      JournalEntry[]
-  playbooks    Playbook[]
-  csvPresets   CsvImportPreset[]
-  llmSessions  LlmImportSession[]
-  llmApiKeys   LlmApiKey[]
+  accounts       PropFirmAccount[]
+  trades         Trade[]
+  transactions   AccountTransaction[]
+  journal        JournalEntry[]
+  playbooks      Playbook[]
+  csvPresets     CsvImportPreset[]
+  llmSessions    LlmImportSession[]
+  llmApiKeys     LlmApiKey[]
+  authenticators Authenticator[]
+}
+
+model Authenticator {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId        String    @unique
+  credentialPublicKey Bytes
+  counter             BigInt    @default(0)
+  deviceType          String
+  backedUp            Boolean   @default(false)
+  transports          String[]  @default([])
+  nickname            String?
+  lastUsedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model LoginAttempt {
+  id         String      @id @default(cuid())
+  identifier String
+  ip         String?
+  method     LoginMethod
+  success    Boolean
+  createdAt  DateTime    @default(now())
+
+  @@index([identifier, createdAt])
+  @@index([ip, createdAt])
 }
 
 model LlmApiKey {

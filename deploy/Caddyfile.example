@@ -1,0 +1,41 @@
+# Rename this to `Caddyfile` and edit the two values below.
+#
+# Point your domain's A record at the droplet first, otherwise the
+# automatic TLS challenge will fail.
+
+{$DOMAIN:your-domain.example} {
+	encode zstd gzip
+
+	# Forward real client IP to the Next.js app for rate limiting.
+	reverse_proxy web:3000 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	# Security headers
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()"
+	}
+
+	# -- OPTIONAL: mTLS ----------------------------------------------------
+	# Uncomment to require a client certificate on every request. Only
+	# browsers/devices carrying a cert signed by your private CA can reach
+	# the app. See README "mTLS" section for how to generate the CA + certs.
+	#
+	# tls {
+	# 	client_auth {
+	# 		mode require_and_verify
+	# 		trusted_ca_cert_file /etc/caddy/client_ca.pem
+	# 	}
+	# }
+
+	log {
+		output stdout
+		format json
+	}
+}
