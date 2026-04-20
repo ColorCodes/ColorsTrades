@@ -35,6 +35,10 @@ Open http://localhost:3000 and log in with `SEED_EMAIL` / `SEED_PASSWORD`.
 | `DEFAULT_CURRENCY` | Display currency (default USD) |
 | `DEFAULT_TIMEZONE` | Display timezone (default UTC) |
 
+### Auth host trust
+
+`AUTH_TRUST_HOST=true` is set by default in `docker-compose.yml` so NextAuth v5 honors the `Host` header behind a reverse proxy. This is safe **only** when the Next.js container isn't reachable directly from the public internet. For production, run it behind Caddy/nginx and bind the app to localhost — see deployment notes in the docker-compose comments.
+
 ### AI chat importer
 
 Go to **Settings → AI chat import** and:
