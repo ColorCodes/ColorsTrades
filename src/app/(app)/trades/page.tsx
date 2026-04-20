@@ -110,7 +110,7 @@ export default async function TradesPage({ searchParams }: { searchParams: Promi
                 {trades.map((t) => {
                   const net = Number(t.netPnl ?? 0);
                   return (
-                    <TableRow key={t.id} className="cursor-pointer" onClick={() => {}}>
+                    <TableRow key={t.id}>
                       <TableCell>
                         <Link href={`/trades/${t.id}`} className="block">
                           {new Date(t.entryAt).toLocaleDateString()}

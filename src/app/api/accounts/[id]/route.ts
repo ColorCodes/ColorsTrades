@@ -42,11 +42,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
   const { id } = await params;
   const existing = await prisma.propFirmAccount.findFirst({ where: { id, userId: user.id } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  await prisma.propFirmAccount.update({ where: { id }, data: { archivedAt: new Date(), phase: "ARCHIVED" } });
+  const mode = new URL(req.url).searchParams.get("mode");
+  if (mode === "archive") {
+    await prisma.propFirmAccount.update({ where: { id }, data: { archivedAt: new Date(), phase: "ARCHIVED" } });
+  } else {
+    await prisma.propFirmAccount.delete({ where: { id } });
+  }
   return NextResponse.json({ ok: true });
 }

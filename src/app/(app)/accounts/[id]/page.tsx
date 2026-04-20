@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatCurrency } from "@/lib/utils";
 import { AccountForm } from "../account-form";
 import { NewTransactionForm } from "./new-transaction-form";
+import { DeleteAccountButton } from "./delete-button";
 
 export default async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser();
@@ -141,6 +142,8 @@ export default async function AccountDetail({ params }: { params: Promise<{ id: 
           />
         </CardContent>
       </Card>
+
+      <DeleteAccountButton id={account.id} name={account.name} />
     </div>
   );
 }

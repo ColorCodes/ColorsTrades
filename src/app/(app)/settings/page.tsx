@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChangePasswordForm } from "./change-password-form";
 import { ThemeToggle } from "./theme-toggle";
 import { LlmProviderForm } from "./llm-provider-form";
+import { DangerZone } from "./danger-zone";
 import { getLlmSettingsState } from "@/lib/llm-settings";
 
 export default async function SettingsPage() {
@@ -44,6 +45,16 @@ export default async function SettingsPage() {
             </p>
           )}
         </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Danger zone</CardTitle>
+          <CardDescription>
+            Wipe seeded demo data or start fresh. Permanent — no undo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent><DangerZone /></CardContent>
       </Card>
     </div>
   );
