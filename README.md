@@ -35,9 +35,27 @@ Open http://localhost:3000 and log in with `SEED_EMAIL` / `SEED_PASSWORD`.
 | `DEFAULT_CURRENCY` | Display currency (default USD) |
 | `DEFAULT_TIMEZONE` | Display timezone (default UTC) |
 
+## Production deployment checklist
+
+Deploying publicly? Read this first. The default `docker-compose.yml` is production-safe **only if** you follow all of these:
+
+1. **Every secret is unique and strong.** `POSTGRES_PASSWORD`, `NEXTAUTH_SECRET`, `ENCRYPTION_KEY`, `SEED_PASSWORD`. Generate with `openssl rand`. Never reuse across environments.
+2. **Rotate `SEED_PASSWORD` immediately after first login** via Settings → Change password. The seed only runs on an empty DB, but the value persists in `.env`.
+3. **Ports**
+   - Postgres (`5432`) is **not** bound to the host in `docker-compose.yml`. Do not add it back. Only the `web` and `migrate` services (on the internal docker network) can reach it.
+   - `web` binds to `127.0.0.1:3000` only — not reachable from the public internet. Put Caddy or nginx in front for TLS, and reverse-proxy to `127.0.0.1:3000`.
+4. **Firewall**: `ufw default deny incoming; ufw allow 22/tcp; ufw allow 80/tcp; ufw allow 443/tcp; ufw enable`. Enable DigitalOcean's cloud firewall too — defense in depth.
+5. **SSH**: disable password auth (`PasswordAuthentication no` in `/etc/ssh/sshd_config`), key-only, consider a non-22 port, install `fail2ban`.
+6. **OS**: `unattended-upgrades` on Ubuntu/Debian so kernel + Docker security patches apply automatically.
+7. **Auth host trust**: `AUTH_TRUST_HOST=true` is set by default because NextAuth v5 requires it on any non-Vercel host. This is safe **only** because the app binds to localhost behind a trusted reverse proxy. If you expose port 3000 directly, a spoofed `Host` header can redirect auth flows.
+8. **Backups**: `docker compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB | gzip > backup-$(date +%F).sql.gz` in cron. Store off-box.
+9. **`.env` permissions**: `chmod 600 .env && chown root:root .env`.
+
+If your droplet ever gets flagged for abuse (outbound DDoS, crypto mining, port scanning), assume **every secret it ever touched is compromised**. Revoke API keys, rotate SSH keys, generate new `NEXTAUTH_SECRET`/`ENCRYPTION_KEY` before rebuilding.
+
 ### Auth host trust
 
-`AUTH_TRUST_HOST=true` is set by default in `docker-compose.yml` so NextAuth v5 honors the `Host` header behind a reverse proxy. This is safe **only** when the Next.js container isn't reachable directly from the public internet. For production, run it behind Caddy/nginx and bind the app to localhost — see deployment notes in the docker-compose comments.
+See item 7 above.
 
 ### AI chat importer
 
